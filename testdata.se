@@ -1,0 +1,18 @@
+#ORGNR 123456-1112
+#KONTO 1020 Postgiro
+#KONTO 1040 Checkkonto
+#VER "" 4 19950113 "Verifikationstext 1995"
+{
+  #TRANS 1210 {} 50000.00 19950113 "" 5000
+  #TRANS 1220 {} -50000.00
+}
+#VER "" 5 19950127 "Verifikationstext 1995"
+{
+  #TRANS 1230 {} 8000.00
+  #TRANS 1290 {} -8000.00
+}
+#VER "" 6 19950130 "Verifikationstext 1995"
+{
+  #TRANS 1310 {} 8500.00
+  #TRANS 1340 {} -8500.00
+}
