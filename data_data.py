@@ -1,6 +1,6 @@
 import datetime
 import dash
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, Event
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table_experiments as dt
@@ -17,7 +17,7 @@ app.scripts.config.serve_locally = True
 app.config.supress_callback_exceptions = True
 temp_df = {}
 
-#
+
 def clean_file(df, filename):
     print("This is filename : ", filename)
     print("This is temp file name: ", temp_df.keys())
@@ -65,7 +65,7 @@ app.layout = html.Div([
                 id="dropdown",
                 options=[{
                     'label': i,
-                    'value': i
+                    # 'value': i
                 } for i in list(temp_df)],
                 value='filename'),
         ],
@@ -79,20 +79,26 @@ app.layout = html.Div([
     Output('funnel-graph', 'figure'),
     [Input('dropdown', 'value')])
 def update_graph(filename):
-    df_plot = temp_df[filename]
-
-    return {
-        'data': [{'x': df_plot['labels'], 'y': df_plot['counts'], 'type': 'bar', 'name': 'data'},
-                 ],
-        'layout':
-            go.Layout(
-                title=filename,
-                barmode='stack')
-    }
-
+    if filename is None:
+        return {
+            'data': [],
+            'layout':
+                go.Layout(
+                    title="Please select a database",
+                )
+        }
+    else:
+        df_plot = temp_df[filename]
+        return {
+            'data': [{'x': df_plot['labels'], 'y': df_plot['counts'], 'type': 'bar', 'name': 'data'},
+                     ],
+            'layout':
+                go.Layout(
+                    title=filename,
+                    barmode='stack')
+        }
 
 # Functions
-
 # file upload function
 def parse_contents(contents, filename):
     content_type, content_string = contents.split(',')
@@ -106,7 +112,7 @@ def parse_contents(contents, filename):
             # Assume that the user uploaded an excel file
             df = pd.read_excel(io.BytesIO(decoded))
         else:
-            df = pd.read_fwf(io.StringIO(decoded.decode('iso-8859-1')), sep=" ", header=None)
+            df = pd.read_fwf(io.StringIO(decoded.decode('iso-8859-1')), sep=" ", header=None)  # For swedish
             df = clean_file(df, filename)
     except Exception as e:
         print(e)
