@@ -1,6 +1,6 @@
 import datetime
 import dash
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table_experiments as dt
@@ -9,13 +9,18 @@ import re
 import time
 import io
 import base64
+import plotly.graph_objs as go
 
 start = time.clock()
 app = dash.Dash()
 app.scripts.config.serve_locally = True
+app.config.supress_callback_exceptions = True
+temp_df = {}
 
-
-def clean_file(df):
+#
+def clean_file(df, filename):
+    print("This is filename : ", filename)
+    print("This is temp file name: ", temp_df.keys())
     df = df.iloc[:, :1]
     df.columns = ["tag"]
     df = df[df.tag.isin(["{", "}"]) == False]
@@ -24,17 +29,17 @@ def clean_file(df):
         m = re.search('#(.+?) ', row['tag'])
         if m:
             row['tag'] = m.group()
-
     value_counts = df.tag.value_counts()
 
     df = value_counts.rename_axis('labels').reset_index(name='counts')
-    # print("This is : ", df)
     elapsed = (time.clock() - start)
-    print("Time used:", elapsed)
+    print("Time used:", elapsed)  # It will run three times
+    temp_df[filename] = df
     return df
 
 
 app.layout = html.Div([
+    html.H2("SIE-file analyser"),
     dcc.Upload(
         id='upload-data',
         children=html.Div([
@@ -51,16 +56,45 @@ app.layout = html.Div([
             'textAlign': 'center',
             'margin': '10px'
         },
-        # Allow multiple files to be uploaded
-        multiple=True
-    ),
-    html.Div(id='output-data-upload'),
-    html.Div(dt.DataTable(rows=[{}]), style={'display': 'none'})
+        multiple=False),
+    html.H5("Updated Table"),
+    html.Div(dt.DataTable(rows=[{}], id='table')),
+    html.Div(
+        [
+            dcc.Dropdown(
+                id="dropdown",
+                options=[{
+                    'label': i,
+                    'value': i
+                } for i in list(temp_df)],
+                value='filename'),
+        ],
+        style={'width': '25%',
+               'display': 'inline-block'}),
+    dcc.Graph(id='funnel-graph'),
 ])
 
 
-def parse_contents(contents, filename, date):
-    contents = contents
+@app.callback(
+    Output('funnel-graph', 'figure'),
+    [Input('dropdown', 'value')])
+def update_graph(filename):
+    df_plot = temp_df[filename]
+
+    return {
+        'data': [{'x': df_plot['labels'], 'y': df_plot['counts'], 'type': 'bar', 'name': 'data'},
+                 ],
+        'layout':
+            go.Layout(
+                title=filename,
+                barmode='stack')
+    }
+
+
+# Functions
+
+# file upload function
+def parse_contents(contents, filename):
     content_type, content_string = contents.split(',')
     decoded = base64.b64decode(content_string)
     try:
@@ -71,61 +105,42 @@ def parse_contents(contents, filename, date):
         elif 'xls' in filename:
             # Assume that the user uploaded an excel file
             df = pd.read_excel(io.BytesIO(decoded))
-        elif 'txt' in filename:
-            df = pd.read_fwf(io.BytesIO(decoded))
         else:
             df = pd.read_fwf(io.StringIO(decoded.decode('iso-8859-1')), sep=" ", header=None)
-            df = clean_file(df)
+            df = clean_file(df, filename)
     except Exception as e:
         print(e)
-        return html.Div([
-            'There was an error processing this file.'
-        ])
+        return None
 
-    return html.Div([
-        html.H5(filename),
-        html.H6(datetime.datetime.fromtimestamp(date)),
-
-        # Use the DataTable prototype component:
-        # github.com/plotly/dash-table-experiments
-        # dt.DataTable(rows=df.to_dict('records')),
-        #
-        # html.Hr(),  # horizontal line
-        #
-        # # For debugging, display the raw contents provided by the web browser
-        # html.Div('Raw Content'),
-        # html.Pre(contents[0:200] + '...', style={
-        #     'whiteSpace': 'pre-wrap',
-        #     'wordBreak': 'break-all'
-        # })
-        dcc.Graph(
-            id='example',
-            figure={
-                'data': [
-                    {'x': df['labels'], 'y': df['counts'], 'type': 'bar', 'name': 'Boats'},
-                ],
-                'layout': {
-                    'title': 'Basic Dash Example'
-                }
-            }
-        )
-    ])
+    return df
 
 
-@app.callback(Output('output-data-upload', 'children'),
+# callback table creation
+@app.callback(Output('table', 'rows'),
               [Input('upload-data', 'contents'),
-               Input('upload-data', 'filename'),
-               Input('upload-data', 'last_modified')])
-def update_output(list_of_contents, list_of_names, list_of_dates):
-    if list_of_contents is not None:
-        children = [
-            parse_contents(c, n, d) for c, n, d in
-            zip(list_of_contents, list_of_names, list_of_dates)]
-        return children
+               Input('upload-data', 'filename')])
+def update_output(contents, filename):
+    if contents is not None:
+        df = parse_contents(contents, filename)
+        if df is not None:
+            return df.to_dict('records')
+        else:
+            return [{}]
+    else:
+        return [{}]
+
+
+@app.callback(
+    Output('dropdown', 'options'),
+    [Input('upload-data', 'filename')],
+    [State('dropdown', 'options')])
+def update_options(filename, existing_options):
+    existing_options.append({'label': filename, 'value': filename})
+    return existing_options
 
 
 app.css.append_css({
-    'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
+    "external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"
 })
 
 if __name__ == '__main__':
