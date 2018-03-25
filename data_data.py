@@ -87,6 +87,7 @@ app.layout = html.Div([
             'margin': '10px'
         },
         multiple=False),
+    html.Div(id='duplicate'),
     html.H5("Recently Upload Data"),
     html.Div(dt.DataTable(rows=[{}], id='table', filterable=True, sortable=True)),
     html.H5("Show Statistics Chart "),
@@ -103,13 +104,24 @@ app.layout = html.Div([
         ],
         style={'width': '25%',
                'display': 'inline-block'}),
+    html.H5("Delete database"),
     html.Div(id='target'),
-    dcc.Input(id='input', type='text', value='', placeholder='Type the name'),
+    dcc.Input(id='input', type='text', value='', placeholder='Type the database name'),
     html.Button(id='submit', type='submit', children='Delete'),
     dcc.Graph(id='funnel-graph'),
 ])
 
+# Check duplicated
+@app.callback(Output('duplicate', 'children'),
+              [Input('upload-data', 'filename')],
+              [State('dropdown', 'options')])
+def callback(filename, existing_options):
+    fileList = [i['label'] for i in existing_options]
+    if filename in fileList:
+        return "This database has been uploaded already: {}".format(filename)
 
+
+# Update graph based on the database
 @app.callback(
     Output('funnel-graph', 'figure'),
     [Input('dropdown', 'value')])
@@ -149,8 +161,8 @@ def update_output(contents, filename):
     else:
         return [{}]
 
-
-@app.callback(  # update the data list
+# update the data list
+@app.callback(
     Output('dropdown', 'options'),
     [Input('upload-data', 'filename')],
     [State('dropdown', 'options'),
@@ -168,11 +180,12 @@ def update_options(filename, existing_options, state):
         del existing_options[index_file]
     else:
         print("File is not in file list")
+
     if filename not in fileList and filename is not None:
         existing_options.append({'label': filename, 'value': filename})
     return existing_options
 
-
+# Check delete button
 @app.callback(Output('target', 'children'), [], [State('dropdown', 'options'), State('input', 'value')],
               events=[Event('submit', 'click')])
 def callback(existing_options, state):
@@ -188,6 +201,7 @@ def callback(existing_options, state):
         return "Can not find this database: {}".format(state)
 
 
+# Reset the input field
 @app.callback(Output('input', 'value'), [], [State('dropdown', 'options'), State('input', 'value')],
               events=[Event('submit', 'click')])
 def callback(existing_options, state):
@@ -198,6 +212,7 @@ def callback(existing_options, state):
         return state
 
 
+# Clean the uploaded file name
 @app.callback(Output('upload-data', 'filename'), [], [State('dropdown', 'options'), State('input', 'value')],
               events=[Event('submit', 'click')])
 def callback(existing_options, state):
