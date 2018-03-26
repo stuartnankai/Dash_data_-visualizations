@@ -124,7 +124,7 @@ def callback(filename, existing_options):
 
 
 """
-need to be fixed for update table
+Need to be fixed for update table
 """
 
 # # Update graph based on the database
