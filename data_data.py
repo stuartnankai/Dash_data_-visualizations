@@ -90,6 +90,7 @@ app.layout = html.Div([
     html.Div(id='duplicate'),
     html.H5("Recently Upload Data"),
     html.Div(dt.DataTable(rows=[{}], id='table', filterable=True, sortable=True)),
+    html.Div(id='show-table'),
     html.H5("Show Statistics Chart "),
     html.Div(
         [
@@ -111,6 +112,7 @@ app.layout = html.Div([
     dcc.Graph(id='funnel-graph'),
 ])
 
+
 # Check duplicated
 @app.callback(Output('duplicate', 'children'),
               [Input('upload-data', 'filename')],
@@ -119,6 +121,19 @@ def callback(filename, existing_options):
     fileList = [i['label'] for i in existing_options]
     if filename in fileList:
         return "This database has been uploaded already: {}".format(filename)
+
+
+"""
+need to be fixed for update table
+"""
+
+# # Update graph based on the database
+# @app.callback(
+#     Output('show-table', 'children'),
+#     [Input('dropdown', 'value')])
+# def update_table(filename):
+#        return temp_df[filename]
+
 
 
 # Update graph based on the database
@@ -161,6 +176,7 @@ def update_output(contents, filename):
     else:
         return [{}]
 
+
 # update the data list
 @app.callback(
     Output('dropdown', 'options'),
@@ -170,20 +186,15 @@ def update_output(contents, filename):
     [Event('submit', 'click')])
 def update_options(filename, existing_options, state):
     fileList = [i['label'] for i in existing_options]
-    print("This is file list: ", fileList)
-    print("This is state: ", state)
-    print("This is option: ", existing_options)
-    print("This is file name: ", filename)
     if state in fileList:
         del temp_df[state]
         index_file = fileList.index(state)
         del existing_options[index_file]
-    else:
-        print("File is not in file list")
 
     if filename not in fileList and filename is not None:
         existing_options.append({'label': filename, 'value': filename})
     return existing_options
+
 
 # Check delete button
 @app.callback(Output('target', 'children'), [], [State('dropdown', 'options'), State('input', 'value')],
