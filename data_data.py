@@ -108,7 +108,9 @@ app.layout = html.Div([
     html.H5("Delete database"),
     html.Div(id='target'),
     dcc.Input(id='input', type='text', value='', placeholder='Type the database name'),
-    html.Button(id='submit', type='submit', children='Delete'),
+    html.Button(id='submit', type='submit', children='Delete', style={
+        'width': '15%',
+    }),
     dcc.Graph(id='funnel-graph'),
 ])
 
@@ -121,19 +123,6 @@ def callback(filename, existing_options):
     fileList = [i['label'] for i in existing_options]
     if filename in fileList:
         return "This database has been uploaded already: {}".format(filename)
-
-
-"""
-Need to be fixed for update table
-"""
-
-# # Update graph based on the database
-# @app.callback(
-#     Output('show-table', 'children'),
-#     [Input('dropdown', 'value')])
-# def update_table(filename):
-#        return temp_df[filename]
-
 
 
 # Update graph based on the database
@@ -170,6 +159,7 @@ def update_output(contents, filename):
     if contents is not None:
         df = parse_contents(contents, filename)
         if df is not None:
+            print("This is records: ", df.to_dict('records'))
             return df.to_dict('records')
         else:
             return [{}]
