@@ -28,7 +28,7 @@ def clean_file(df, filename):
     df.columns = ["tag"]  # rename the first column
     df = df[df.tag.isin(["{", "}"]) == False]  # Remove the '{}' for each row.
     for index, row in df.iterrows():
-        m = re.search('#(.+?) ',
+        m = re.search('#(.+?) ',  # regular expression
                       row['tag'])  # The re.search function returns a match object on success, none on failure.
         if m:
             row['tag'] = m.group()  # This method returns entire match (or specific subgroup num)
@@ -46,7 +46,6 @@ def clean_file(df, filename):
 def parse_contents(contents, filename):
     content_type, content_string = contents.split(',')
     decoded = base64.b64decode(content_string)
-    print("This is filename: ", filename)
     try:
         if 'csv' in filename:
             # Assume that the user uploaded a CSV file
@@ -72,7 +71,7 @@ app.layout = html.Div([
         'textAlign': 'center',
         # 'color': colors['text']
     }),
-    dcc.Upload( # using the upload component
+    dcc.Upload(  # using the upload component
         id='upload-data',
         children=html.Div([
             'Drag and Drop or ',
@@ -91,7 +90,7 @@ app.layout = html.Div([
         multiple=False),
     html.Div(id='duplicate'),
     html.H5("Recently Upload Data"),
-    html.Div(dt.DataTable(rows=[{}], id='table', filterable=True, sortable=True)), # show the recently upload data
+    html.Div(dt.DataTable(rows=[{}], id='table', filterable=True, sortable=True)),  # show the recently upload data
     html.Div(id='show-table'),
     html.H5("Show Statistics Chart "),
     html.Div(
@@ -153,7 +152,7 @@ def update_graph(filename):
         }
 
 
-# callback table creation
+# callback table creation, uploaded data will be shown
 @app.callback(Output('table', 'rows'),
               [Input('upload-data', 'contents'),
                Input('upload-data', 'filename')])
@@ -162,22 +161,22 @@ def update_output(contents, filename):
         df = parse_contents(contents, filename)
         if df is not None:
             # print("This is records: ", df.to_dict('records')) # the information for each row.
-            return df.to_dict('records') # the information for each row.
+            return df.to_dict('records')  # the information for each row.
         else:
             return [{}]
     else:
         return [{}]
 
 
-# update the data list
+# update the data list, when a new file uploaded, the filename will be saved in the dropdown list at the same time.
 @app.callback(
     Output('dropdown', 'options'),
     [Input('upload-data', 'filename')],
     [State('dropdown', 'options'),
-     State('input', 'value')], # value = state
+     State('input', 'value')],  # value = state
     [Event('submit', 'click')])
 def update_options(filename, existing_options, state):
-    fileList = [i['label'] for i in existing_options] # get the file list
+    fileList = [i['label'] for i in existing_options]  # get the file list
     if state in fileList:
         del temp_df[state]
         index_file = fileList.index(state)
@@ -188,13 +187,13 @@ def update_options(filename, existing_options, state):
     return existing_options
 
 
-# Check delete button
+# Check delete button by using State('input','value)
 @app.callback(Output('target', 'children'), [], [State('dropdown', 'options'), State('input', 'value')],
               events=[Event('submit', 'click')])
-def callback(existing_options, state): # state is the value from input text field
+def callback(existing_options, state):  # state is the value from input text field
     fileList = [i['label'] for i in existing_options]
-    if len(state) == 0:
-        if len(fileList) == 0:
+    if len(state) == 0:  # the input field is empty
+        if len(fileList) == 0:  # the database is empty
             return "There is no saved database, please upload one"
         else:
             return "Please type the name of database."
@@ -209,7 +208,7 @@ def callback(existing_options, state): # state is the value from input text fiel
               events=[Event('submit', 'click')])
 def callback(existing_options, state):
     fileList = [i['label'] for i in existing_options]
-    if state in fileList:
+    if state in fileList:  # delete the file successfully
         return ""
     else:
         return state
